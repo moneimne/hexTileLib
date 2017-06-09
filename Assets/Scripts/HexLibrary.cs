@@ -5,15 +5,12 @@ using UnityEngine;
 public class HexLibrary : MonoBehaviour {
 
 	public GameObject hex;
-	private GameObject[,] gridMap = null; // the map in hex coordinates
 	private Dictionary<KeyValuePair<int, int>, GameObject> allHexes = null;
 	public GameObject debugMark;
 	public Camera debugCamera;
 
 	// Use this for initialization
 	void Start () {
-		Debug.Log ("Borf");
-		gridMap = new GameObject[7, 7];
 
 		allHexes = new Dictionary<KeyValuePair<int, int>, GameObject> ();
 		GenerateGrid (7, 7, -3, -3);
@@ -41,8 +38,6 @@ public class HexLibrary : MonoBehaviour {
 					width * row + ((col & 1) == 0 ? width * 0.5f : 0.0f)
 				);
 				GameObject nextHex = (GameObject) Instantiate(hex, centroid, new Quaternion());
-				//Vector2 axialIndex = OffsetToAxial(new Vector2(row, col));
-				//Debug.Log (axialIndex.x + ", " + axialIndex.y); 
 				allHexes.Add (new KeyValuePair<int, int> (col, row), nextHex);
 			}
 		}
@@ -64,26 +59,28 @@ public class HexLibrary : MonoBehaviour {
 		// normalized remainder
 		float u = (wcoords.x - x * w) / w;
 		float v = (wcoords.z - y * h) / h;
-
-		Debug.Log("(x, y) = (" + x + ", " + y + "); (u, v) = (" + u + "," + v + ")"); 
+		if (((int)x & 1) == 1)
+			y++;
 
 		if (u > 1.0f / 3.0f) {
 			// definitely inside one hexagon
 			Vector2 vec = new Vector2 (x, (((int)y & 1) == 0 ? y / 2 : (y - 1) / 2));
-			Debug.Log("Interior " + vec.x + ", " + vec.y); 
 			return vec;
 
 		} else {
 			// two possible hexagons
-			if (((int)y & 1) == 0) {
+
+			if (((int)y & 1) == 1) {
 				if (v > (3.0f * u)) {
-					return new Vector2(x - 1, (y + 1) / 2);
+					// in a previous col
+					return new Vector2(x - 1, ((int)x & 1) == 0 ? (y + 1) / 2 : (y - 1) / 2);
 				} else {
 					return new Vector2 (x, (y - 1) / 2);
 				}
 			} else {
 				if (v < (1.0f - 3.0f * u)) {
-					return new Vector2 (x - 1, (y - 2) / 2);
+					// in a previous col
+					return new Vector2 (x - 1, ((int)x & 1) == 0 ? y / 2 : (y - 2) / 2);
 				} else {
 					return new Vector2 (x, y / 2);
 				}
