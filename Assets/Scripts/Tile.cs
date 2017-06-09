@@ -6,7 +6,7 @@ public class Tile : MonoBehaviour {
 
 	public enum Element {Blank, Fire, Water, Grass}
 
-	public List<Tile> neighbors = new List<Tile>();
+	public Tile[] neighbors;
 	public Color highlightColor = Color.cyan;
 	public Element type = Element.Blank;
 
@@ -29,6 +29,7 @@ public class Tile : MonoBehaviour {
 		row = rowIndex;
 		col = colIndex;
 		type = element;
+		neighbors = new Tile[6];
 	}
 
 	public void Highlight() {
@@ -36,7 +37,6 @@ public class Tile : MonoBehaviour {
 	}
 
 	public void Unhighlight() {
-		Debug.Log (row + " " + col);
 		renderer.material.color = Color.white;
 	}
 }

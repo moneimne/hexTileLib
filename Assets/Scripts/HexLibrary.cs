@@ -20,11 +20,14 @@ public class HexLibrary : MonoBehaviour {
 		return ((row > -1 && row < rows) && (col > -1 && col < cols));
 	}
 
-	void testNeighbor(int x, int y) {
-		Tile current = gridMap [x, y];
+	void testNeighbor(int row, int col) {
+		Tile current = gridMap [row, col];
 		current.Unhighlight ();
-		foreach (Tile n in current.neighbors) {
-			n.Unhighlight ();
+		for (int direction = 0; direction < 6; ++direction) {
+			Tile neighbor = current.neighbors [direction];
+			if (neighbor) {
+				neighbor.Unhighlight ();
+			}
 		}
 	}
 
@@ -83,7 +86,7 @@ public class HexLibrary : MonoBehaviour {
 					int x = col + (int)offsets.x;
 					int y = row + (int)offsets.y;
 					if (validInidices(x, y)) {
-						current.neighbors.Add (gridMap[x, y]);
+						current.neighbors[direction] = gridMap[x, y];
 					}
 				}
 			}
