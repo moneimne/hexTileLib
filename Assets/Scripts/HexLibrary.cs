@@ -89,6 +89,12 @@ public class HexLibrary : MonoBehaviour {
 
 	}
 
+	/*
+	 * Input: grid index in offset coordinates
+	 * 
+	 * Output: grid index in axial coordinates
+	 * 
+	 */
 	Vector2 OffsetToAxial (Vector2 offset)
 	{
 		int x = (int)offset.x;
@@ -124,7 +130,7 @@ public class HexLibrary : MonoBehaviour {
 	}
 
 	/*
-	 * Input: player mouse position (Input.mousePosition) and camera reference
+	 * Input: player mouse position (Input.mousePosition) and player's camera reference
 	 *
 	 * Output: a hex if it's under the cursor, null otherwise
 	 *
@@ -154,6 +160,7 @@ public class HexLibrary : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
+		// to be removed
 		if (Input.GetMouseButton (0)) {
 			GameObject g = MouseSelectHex (Input.mousePosition, debugCamera);
 			if (g != null)
