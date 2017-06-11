@@ -15,20 +15,20 @@ public class Tile : MonoBehaviour {
 	Renderer renderer;
 
 	// Use this for initialization
-	void Start () {
-		renderer = gameObject.GetComponent<Renderer> ();
-	}
+	void Start () {}
 	
 	// Update is called once per frame
 	void Update () {
 		
 	}
 
-	public void InitializeTile(Element element, int rowIndex, int colIndex) {
+	public void Initialize(Element element, int rowIndex, int colIndex) {
 		row = rowIndex;
 		col = colIndex;
 		type = element;
 		neighbors = new Tile[6];
+		gameObject.GetComponent<GeneratedHexagon> ().Generate();
+		renderer = gameObject.GetComponent<Renderer> ();
 	}
 
 	public void Highlight() {

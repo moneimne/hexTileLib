@@ -22,17 +22,16 @@ public class HexLibrary : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		Debug.Log ("Borf");
+	}
+
+	public void Initialize() {
 		minRow = rows / -2;
 		minCol = cols / -2;
 
 		GenerateGrid (cols, rows);
 	}
 
-	bool validInidices(int col, int row) {
-		return ((row > -1 && row < rows) && (col > -1 && col < cols));
-	}
-
-	void testNeighbor(int col, int row) {
+	void TestNeighbor(int col, int row) {
 		KeyValuePair<int, int> k = new KeyValuePair<int, int> (col, row);
 
 		if (!gridMap.ContainsKey(k)) {
@@ -76,11 +75,9 @@ public class HexLibrary : MonoBehaviour {
 
 				// Generate hex tile
 				Tile nextHex = ((GameObject)Instantiate (hexTile, centroid, scratchQuaternion)).GetComponent<Tile> ();
-				nextHex.InitializeTile (Tile.Element.Blank, col, row);
-				
+				nextHex.Initialize (Tile.Element.Blank, col, row);
 
 				gridMap.Add (new KeyValuePair<int, int> (col, row), nextHex);
-				Debug.Log (col + " " + row);
 			}
 		}
 
@@ -103,12 +100,10 @@ public class HexLibrary : MonoBehaviour {
 					Vector2 offsets = directions [parity, direction];
 					int x = col + (int)offsets.x;
 					int y = row + (int)offsets.y;
-					if (validInidices (x, y)) {
-						k = new KeyValuePair<int, int> (x, y);
-						current.neighbors [direction] = null;
-						if (gridMap.ContainsKey(k)) {
-							current.neighbors [direction] = gridMap[k];
-						}
+					k = new KeyValuePair<int, int> (x, y);
+					current.neighbors [direction] = null;
+					if (gridMap.ContainsKey(k)) {
+						current.neighbors [direction] = gridMap[k];
 					}
 				}
 			}
@@ -206,7 +201,7 @@ public class HexLibrary : MonoBehaviour {
 	 * Output: a hex if it's under the cursor, null otherwise
 	 *
 	 */
-	private Tile MouseSelectHex(Vector3 mouseCoords, Camera cam) {
+	public Tile MouseSelectHex(Vector3 mouseCoords, Camera cam) {
 		// convert mouse screen space into world space
 		Ray r = cam.ScreenPointToRay(mouseCoords);
 		// raycast to planes from top downward
@@ -228,27 +223,54 @@ public class HexLibrary : MonoBehaviour {
 		return null;
 	}
 
-	private void SelectTile() {
-		Tile g = MouseSelectHex (Input.mousePosition, debugCamera);
-		if (g != null) {
-			if (selected) {
-				selected.Unhighlight ();
+	/*
+	 * Path finding: given a source tile and a target tile
+	 * generate a path between them
+	 */
+	public void astar(Tile source, Tile destination) {
+		List<Tile> path = new List<Tile> ();
+
+		Stack<Tile> stack = new Stack<Tile> ();
+
+		Tile current = source;
+		while (current != destination) {
+
+			// Push all neighboring nodes
+			for (int i = 0; i < 6; ++i) {
+				Tile neighbor = current.neighbors [i];
+
+				// Check acessibility
+				if (neighbor) {
+					stack.Push (neighbor);
+				}
+				current = stack.Pop ();
 			}
-			selected = g;
-			selected.Highlight();
 		}
+	}
+
+	public Dictionary<KeyValuePair<int, int>, SearchTileNode> generateSearchNodes() {
+		Dictionary<KeyValuePair<int, int>, SearchTileNode> searchNodes = new Dictionary<KeyValuePair<int, int>, SearchTileNode> ();
+
+		// Populate tile neighbors
+		for (int col = minCol; col < minCol + cols; ++col) {
+			for (int row = minRow; row < minRow + rows; ++row) {
+				KeyValuePair<int, int> k = new KeyValuePair<int, int> (col, row);
+				Tile tile = gridMap [k];
+
+				SearchTileNode node = new SearchTileNode ();
+				node.Initialize (tile);
+
+				searchNodes.Add (new KeyValuePair<int, int> (col, row), node);
+			}
+		}
+		return searchNodes;
 	}
 
 	// Update is called once per frame
 	void Update () {
 		
 		if (Input.GetKeyDown (KeyCode.A)) {
-			testNeighbor (2, 2);
-		}
-
-		// Select a tile
-		if (Input.GetMouseButton (0)) {
-			SelectTile ();
+			TestNeighbor (2, 2);
 		}
 	}
 }

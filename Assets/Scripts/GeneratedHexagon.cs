@@ -7,7 +7,7 @@ public class GeneratedHexagon : MonoBehaviour {
 	public Material meshMat;
 	private static Mesh mesh;
 
-	void Start () {
+	public void Generate () {
 		gameObject.AddComponent<MeshFilter>();
 		gameObject.AddComponent<MeshRenderer>();
 		//Vector3 p = gameObject.GetComponent<Transform> ().position;
@@ -63,12 +63,15 @@ public class GeneratedHexagon : MonoBehaviour {
 			triangles.Add (sideIdx + 1);
 			sideIdx += 4;
 		}
-			
+
 		mesh.SetVertices (vertices);
 		mesh.SetNormals (normals);
 		mesh.SetTriangles (triangles, 0);
 
 		gameObject.GetComponent<MeshRenderer> ().material = meshMat;
+	}
+
+	void Start () {
 	}
 	
 	// Update is called once per frame
