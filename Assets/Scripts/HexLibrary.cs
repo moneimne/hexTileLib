@@ -4,44 +4,115 @@ using UnityEngine;
 
 public class HexLibrary : MonoBehaviour {
 
-	public GameObject hex;
-	private Dictionary<KeyValuePair<int, int>, GameObject> allHexes = null;
-	public GameObject debugMark;
+	public GameObject hexTile;
 	public Camera debugCamera;
+
+	public int rows = 7;
+	public int cols = 7;
+
+	// The currently selected tile
+	Tile selected = null;
+
+	int minRow;
+	int minCol;
+
+	// The board with offset coordinates
+	private Dictionary<KeyValuePair<int, int>, Tile> gridMap = null; 
 
 	// Use this for initialization
 	void Start () {
+		Debug.Log ("Borf");
+		minRow = rows / -2;
+		minCol = cols / -2;
 
-		allHexes = new Dictionary<KeyValuePair<int, int>, GameObject> ();
-		GenerateGrid (7, 7, -3, -3);
+		GenerateGrid (cols, rows);
+	}
 
-		if (debugMark == null) {
-			debugMark = (GameObject) Instantiate(hex, new Vector3(0, 0, 0), new Quaternion());
+	bool validInidices(int col, int row) {
+		return ((row > -1 && row < rows) && (col > -1 && col < cols));
+	}
+
+	void testNeighbor(int col, int row) {
+		KeyValuePair<int, int> k = new KeyValuePair<int, int> (col, row);
+
+		if (!gridMap.ContainsKey(k)) {
+			return;
+		}
+
+		Tile current = gridMap [k];
+		current.Unhighlight ();
+		for (int direction = 0; direction < 6; ++direction) {
+			Tile neighbor = current.neighbors [direction];
+			if (neighbor) {
+				neighbor.Unhighlight ();
+			}
+
 		}
 	}
 
 	// creates a hexagonal grid with specified number of rows and columns (to be changed later)
-	void GenerateGrid(int rows, int cols, int minRow, int minCol) {
-		if (hex == null)
+	Quaternion scratchQuaternion = new Quaternion();
+	void GenerateGrid(int rows, int cols) {
+
+		gridMap = new Dictionary<KeyValuePair<int, int>, Tile> ();
+
+		if (hexTile == null) {
+			Debug.Log ("You fool! You forgot to attach the hex generator!");
 			return;
+		}
 
 		float length = 1.0f;
 		float height = 2.0f * length;
 		float width = Mathf.Sqrt (3.0f) * length;
 
-
-		for (int col = minCol; col < minCol + cols; col++) {
-			for (int row = minRow; row < minRow + rows; row++) {
+		// Generate grid
+		for (int col = minCol; col < minCol + cols; ++col) {
+			for (int row = minRow; row < minRow + rows; ++row) {
 				Vector3 centroid = new Vector3 (
-					1.0f + 1.5f * col, 
-					Random.Range(-1.0f, -0.1f), 
-					width * row + ((col & 1) == 0 ? width * 0.5f : 0.0f)
-				);
-				GameObject nextHex = (GameObject) Instantiate(hex, centroid, new Quaternion());
-				allHexes.Add (new KeyValuePair<int, int> (col, row), nextHex);
+					                   1.0f + 1.5f * col, 
+					                   Random.Range (-1.0f, -0.1f), 
+					                   width * row + ((col & 1) == 0 ? width * 0.5f : 0.0f)
+				                   );
+
+				// Generate hex tile
+				Tile nextHex = ((GameObject)Instantiate (hexTile, centroid, scratchQuaternion)).GetComponent<Tile> ();
+				nextHex.InitializeTile (Tile.Element.Blank, col, row);
+				
+
+				gridMap.Add (new KeyValuePair<int, int> (col, row), nextHex);
+				Debug.Log (col + " " + row);
 			}
 		}
 
+		// Indicies for neighboring cells in offset coordinates
+		Vector2[,] directions = new Vector2[2, 6] { { new Vector2 (0, -1), new Vector2 (1, -1), new Vector2 (1, 0),
+				new Vector2 (0, 1), new Vector2 (-1, 0), new Vector2 (-1, -1)
+			}, { new Vector2 (0, -1), new Vector2 (1, 0), new Vector2 (1, 1),
+				new Vector2 (0, 1), new Vector2 (-1, 1), new Vector2 (-1, 0)
+			}
+		};
+
+		// Populate tile neighbors
+		for (int col = minCol; col < minCol + cols; ++col) {
+			for (int row = minRow; row < minRow + rows; ++row) {
+				KeyValuePair<int, int> k = new KeyValuePair<int, int> (col, row);
+				Tile current = gridMap [k];
+
+				int parity = (col+1) & 1;
+				for (int direction = 0; direction < 6; ++direction) {
+					Vector2 offsets = directions [parity, direction];
+					int x = col + (int)offsets.x;
+					int y = row + (int)offsets.y;
+					if (validInidices (x, y)) {
+						k = new KeyValuePair<int, int> (x, y);
+						current.neighbors [direction] = null;
+						if (gridMap.ContainsKey(k)) {
+							current.neighbors [direction] = gridMap[k];
+						}
+					}
+				}
+			}
+		}
 	}
 
 	/*
@@ -135,7 +206,7 @@ public class HexLibrary : MonoBehaviour {
 	 * Output: a hex if it's under the cursor, null otherwise
 	 *
 	 */
-	private GameObject MouseSelectHex(Vector3 mouseCoords, Camera cam) {
+	private Tile MouseSelectHex(Vector3 mouseCoords, Camera cam) {
 		// convert mouse screen space into world space
 		Ray r = cam.ScreenPointToRay(mouseCoords);
 		// raycast to planes from top downward
@@ -145,26 +216,39 @@ public class HexLibrary : MonoBehaviour {
 		}
 		// convert to offset
 		Vector2 hex = WorldToOffset(i.point);
-		debugMark.transform.position = i.point;
 		KeyValuePair<int, int> k = new KeyValuePair<int, int> ((int)hex.x, (int)hex.y);
 		// convert to axial
 		//hex = OffsetToAxial(hex);
 		// see if hex exists here
 		//GameObject g = gridMap[(int)hex.x, (int)hex.y];
 
-		if (allHexes.ContainsKey(k)) {
-			return allHexes[k];
+		if (gridMap.ContainsKey(k)) {
+			return gridMap[k];
 		}
 		return null;
 	}
 
+	private void SelectTile() {
+		Tile g = MouseSelectHex (Input.mousePosition, debugCamera);
+		if (g != null) {
+			if (selected) {
+				selected.Unhighlight ();
+			}
+			selected = g;
+			selected.Highlight();
+		}
+	}
+
 	// Update is called once per frame
 	void Update () {
-		// to be removed
+		
+		if (Input.GetKeyDown (KeyCode.A)) {
+			testNeighbor (2, 2);
+		}
+
+		// Select a tile
 		if (Input.GetMouseButton (0)) {
-			GameObject g = MouseSelectHex (Input.mousePosition, debugCamera);
-			if (g != null)
-				debugMark.transform.position = g.transform.position;
+			SelectTile ();
 		}
 	}
 }
