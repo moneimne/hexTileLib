@@ -31,6 +31,10 @@ public class HexLibrary : MonoBehaviour {
 		GenerateGrid (cols, rows);
 	}
 
+	public Tile GetTile(int col, int row) {
+		return gridMap[new KeyValuePair<int, int> (col, row)];
+	}
+
 	void TestNeighbor(int col, int row) {
 		KeyValuePair<int, int> k = new KeyValuePair<int, int> (col, row);
 
@@ -224,53 +228,123 @@ public class HexLibrary : MonoBehaviour {
 	}
 
 	/*
+	 * Get the distance between two tiles, a cost heuristic for astar. 
+	 */
+	float GetCostEstimate(Tile a, Tile b) {
+		return Vector3.Distance (a.GetPosition (), b.GetPosition ());
+	}
+
+	/*
+	 * For astar, get the tile in the open set estimated to be nearest
+	 */
+	Tile GetClosest(HashSet<Tile> open, Dictionary<Tile, float> gScore) {
+		Tile bestTile = null;
+		float bestScore = 10000000;
+		foreach (Tile t in open) {
+			if (gScore [t] < bestScore) {
+				bestTile = t;
+				bestScore = gScore [t];
+			}
+		}
+		return bestTile;
+	}
+
+	List<Tile> ReconstructPath(Tile goal, Dictionary<Tile, Tile> previousNodes) {
+		List<Tile> path = new List<Tile> ();
+		path.Add (goal);
+		Tile current = goal;
+		while (previousNodes.ContainsKey (current)) {
+			current = previousNodes [current];
+			path.Add (current);
+		}
+		return path;
+	}
+
+	/*
 	 * Path finding: given a source tile and a target tile
 	 * generate a path between them
 	 */
-	public void astar(Tile source, Tile destination) {
-		List<Tile> path = new List<Tile> ();
+	List<Tile> Astar(Tile source, Tile destination) {
 
-		Stack<Tile> stack = new Stack<Tile> ();
+		HashSet<Tile> open = new HashSet<Tile> ();
+		HashSet<Tile> closed = new HashSet<Tile>(); 
 
-		Tile current = source;
-		while (current != destination) {
+		Dictionary<Tile, float> gScore = new Dictionary<Tile, float>();
+		Dictionary<Tile, float> fScore = new Dictionary<Tile, float>();
+
+		Dictionary<Tile, Tile> previousNode = new Dictionary<Tile, Tile> ();
+
+		open.Add (source);
+		gScore.Add (source, 0);
+		fScore.Add (source, GetCostEstimate (source, destination));
+
+		while (open.Count > 0) {
+			Tile current = GetClosest(open, gScore);
+			if (current == destination) {
+				return ReconstructPath(current, previousNode);
+			}
+
+			open.Remove (current);
+			closed.Add (current);
 
 			// Push all neighboring nodes
 			for (int i = 0; i < 6; ++i) {
 				Tile neighbor = current.neighbors [i];
 
-				// Check acessibility
 				if (neighbor) {
-					stack.Push (neighbor);
+					if (!closed.Contains (neighbor) && !open.Contains (neighbor)) {
+						open.Add (neighbor);
+					}
+					float tentativeScore = gScore [current] + GetCostEstimate (current, neighbor);
+					if (gScore.ContainsKey (neighbor) && gScore [neighbor] < tentativeScore) {
+						continue;
+					}
+					previousNode [neighbor] = current;
+					fScore [neighbor] = tentativeScore;
+					gScore [neighbor] = tentativeScore + GetCostEstimate (neighbor, destination);
 				}
-				current = stack.Pop ();
 			}
+		}
+		return null;
+	}
+		
+	/*
+	 * Given a path, highlight it. 
+	 * 
+	 */
+	public void HighlightPath(List<Tile> path) {
+		foreach (Tile t in path) {
+			t.Highlight ();
 		}
 	}
 
-	public Dictionary<KeyValuePair<int, int>, SearchTileNode> generateSearchNodes() {
-		Dictionary<KeyValuePair<int, int>, SearchTileNode> searchNodes = new Dictionary<KeyValuePair<int, int>, SearchTileNode> ();
-
-		// Populate tile neighbors
-		for (int col = minCol; col < minCol + cols; ++col) {
-			for (int row = minRow; row < minRow + rows; ++row) {
-				KeyValuePair<int, int> k = new KeyValuePair<int, int> (col, row);
-				Tile tile = gridMap [k];
-
-				SearchTileNode node = new SearchTileNode ();
-				node.Initialize (tile);
-
-				searchNodes.Add (new KeyValuePair<int, int> (col, row), node);
-			}
+	/*
+	 * Given a path, unhighlight it. 
+	 * 
+	 */
+	public void UnhighlightPath(List<Tile> path) {
+		foreach (Tile t in path) {
+			t.Unhighlight ();
 		}
-		return searchNodes;
 	}
+
+	public List<Tile> TestPath(Tile source, Tile destination) {
+		List<Tile> path = Astar (source, destination);
+		HighlightPath (path);
+		return path;
+	}
+
 
 	// Update is called once per frame
 	void Update () {
 		
 		if (Input.GetKeyDown (KeyCode.A)) {
 			TestNeighbor (2, 2);
+		}
+		if (Input.GetKeyDown (KeyCode.B)) {
+			Tile start = gridMap [new KeyValuePair<int, int> (2, 2)];
+			Tile end = gridMap [new KeyValuePair<int, int> (-1, -1)];
+			HighlightPath(Astar(start, end));
 		}
 	}
 }

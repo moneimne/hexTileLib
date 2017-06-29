@@ -10,7 +10,7 @@ public class Player : MonoBehaviour {
 	HexLibrary hexLibrary;
 
 	Tile selected;
-	List<Tile> path;
+	List<Tile> path = null;
 	Tile goal;
 
 	// The board with offset coordinates
@@ -28,20 +28,29 @@ public class Player : MonoBehaviour {
 		}
 	}
 
+	private void SelectPath() {
+		Tile g = hexLibrary.MouseSelectHex (Input.mousePosition, camera);
+		if (g != null) {
+			if (path != null) {
+				hexLibrary.UnhighlightPath (path);
+			}
+			path = hexLibrary.TestPath(g, hexLibrary.GetTile(0, 0));
+		}
+	}
+
 	// Use this for initialization
 	void Start () {}
 
 	public void Initialize(GameObject gameBoard) {
 		board = gameBoard;
 		hexLibrary = board.GetComponent<HexLibrary> ();
-		searchNodes = hexLibrary.generateSearchNodes ();
 	}
 
 	// Update is called once per frame
 	void Update () {
 		// Select a tile
 		if (Input.GetMouseButton (0)) {
-			SelectTile ();
+			SelectPath ();
 		}
 	}
 }

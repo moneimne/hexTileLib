@@ -38,4 +38,8 @@ public class Tile : MonoBehaviour {
 	public void Unhighlight() {
 		renderer.material.color = Color.white;
 	}
+
+	public Vector3 GetPosition() {
+		return gameObject.transform.position;
+	}
 }
